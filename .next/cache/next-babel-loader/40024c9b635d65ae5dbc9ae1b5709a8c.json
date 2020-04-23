@@ -1,0 +1,1 @@
+{"ast":null,"code":"var __jsx = React.createElement;\nimport React from 'react';\nimport { useState } from 'react';\n\nvar Register = function Register() {\n  return __jsx(\"p\", null, \"Hola soy register\");\n};\n\nexport default Register;","map":null,"metadata":{},"sourceType":"module"}
