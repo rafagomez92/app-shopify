@@ -136,7 +136,8 @@ var ResolveConflict = function ResolveConflict(_ref) {
       can_solve = _ref.can_solve,
       modal_open = _ref.modal_open,
       closeModal = _ref.closeModal,
-      stepVariant = _ref.stepVariant;
+      stepVariant = _ref.stepVariant,
+      updateVariantSelections = _ref.updateVariantSelections;
 
   var _useState = Object(react__WEBPACK_IMPORTED_MODULE_1__["useState"])({
     hasNext: false,
@@ -156,7 +157,7 @@ var ResolveConflict = function ResolveConflict(_ref) {
       _variant_in_modal$cal = variant_in_modal.calculated_duty_original,
       calculated_duty_original = _variant_in_modal$cal === void 0 ? 0 : _variant_in_modal$cal,
       _variant_in_modal$pri = variant_in_modal.price_selected,
-      price_selected = _variant_in_modal$pri === void 0 ? null : _variant_in_modal$pri; // Cada que variant_in_mocal cambie verificamos el estado del paginador
+      price_selected = _variant_in_modal$pri === void 0 ? null : _variant_in_modal$pri; // Cada que variant_in_modal cambie verificamos el estado del paginador
 
   Object(react__WEBPACK_IMPORTED_MODULE_1__["useEffect"])(function () {
     var v = variants_with_conflict;
@@ -177,12 +178,12 @@ var ResolveConflict = function ResolveConflict(_ref) {
 
   if (variants_with_conflict.length > 0) {
     pagination = __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Pagination"], {
-      hasPrevious: true,
+      hasPrevious: hasPaginator.hasPrevious,
       onPrevious: function onPrevious() {
         console.log('Previous');
         move(-1);
       },
-      hastNext: true,
+      hasNext: hasPaginator.hasNext,
       onNext: function onNext() {
         console.log('Next');
         move(1);
@@ -190,7 +191,9 @@ var ResolveConflict = function ResolveConflict(_ref) {
     });
   }
 
-  var handleSubmit = function handleSubmit() {};
+  var handleSubmit = function handleSubmit() {
+    updateVariantSelections();
+  };
 
   var handleClose = function handleClose() {
     closeModal();
@@ -211,6 +214,7 @@ var ResolveConflict = function ResolveConflict(_ref) {
     }) + step;
 
     if (i >= 0 && i < v.length) {
+      //paso valido
       stepVariant(price_selected, i);
     }
   };
@@ -224,19 +228,19 @@ var ResolveConflict = function ResolveConflict(_ref) {
   }, "Guarda mi selecci\xF3n")));
 
   var currentVariant = variants_with_conflict.findIndex(function (e) {
-    return e.id === i;
+    return e.id === id;
   }) + 1;
   return __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Modal"], {
     large: true,
     open: modal_open,
     onClose: handleClose,
-    title: "Resolver conflicto ".concat(currentVariant, " de ").concat(variants_with_conflict.length),
+    title: "Conflicto ".concat(currentVariant, " de ").concat(variants_with_conflict.length),
     footer: footer
-  }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Modal"].Section, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["TextContainer"], null, __jsx("div", null, "Nuestros expertos sugieren diferentes impuestos de los que usted ha indicado. Seleccione cual es el correcto"), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"], {
+  }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Modal"].Section, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["TextContainer"], null, __jsx("div", null, "Nuestros expertos sugieren diferentes impuestos que los que usted ha indicado. Seleccione cual es el correcto."), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"], {
     distribution: "fillEvenly"
   }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"].Item, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"], null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Thumbnail"], {
     source: image_url
-  }), __jsx("div", null, title))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"].Item, null, __jsx("div", null, "Regular price: $", price), __jsx("div", null, "Impuestos: selecciona a continuaci\xF3n"))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"], {
+  }), __jsx("div", null, title))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"].Item, null, __jsx("div", null, "Precio Regular: $", price), __jsx("div", null, "Impuestos: seleccione a continuaci\xF3n"))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Stack"], {
     distribution: "fillEvenly"
   }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_2__["Card"], {
     sectioned: true
@@ -313,6 +317,9 @@ var mapDispatchToProps = function mapDispatchToProps(dispatch) {
     },
     stepVariant: function stepVariant(selected, next_index) {
       return dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].stepVariant(selected, next_index));
+    },
+    updateVariantSelections: function updateVariantSelections() {
+      return dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].updateVariantSelections());
     }
   };
 };
@@ -63382,6 +63389,44 @@ var reviewVariants = function reviewVariants(payload) {
       console.log('reviewVariants error', error);
     });
   };
+};
+
+var updateVariantSelections = function updateVariantSelections() {
+  return function (dispatch, getState) {
+    var variants_with_conflict = getState().variant.variants_with_conflict;
+    var shop = getState().shopify.shop;
+    var shopify_variants = variants_with_conflict.map(function (e) {
+      return {
+        id: e.variant_id,
+        price: e.price_selected === 'recommended' ? e.variant_recommended_price : e.variant_price
+      };
+    });
+    var instance = axios__WEBPACK_IMPORTED_MODULE_0___default.a.create({
+      baseURL: '/api',
+      timeout: 5000
+    });
+    return instance.put('/shopify', {
+      shopify_variants: shopify_variants
+    }).then(function (response) {
+      console.debug('updateVariantSelections success', response);
+      var backendVariants = variants_with_conflict.map(function (e) {
+        return {
+          _id: e._id,
+          price_selected: e.price_selected
+        };
+      });
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.put("/store/".concat(shop.id, "/finish"), {
+        variants_with_conflict: backendVariants
+      }).then(function (response) {
+        //Guardando nuevos status en redux
+        dispatch(_shopExists(response.data.store));
+        dispatch(setVariants(response.data.store.variants));
+        dispatch(closeModal());
+      }, function (error) {});
+    }, function (error) {
+      console.debug('updateVariantSelections error', error);
+    });
+  };
 }; // C ===================
 //exportar las funciones que finalmente se van a comunicar
 //con los componentes reales es decir tienen comunicacion
@@ -63392,7 +63437,8 @@ var reviewVariants = function reviewVariants(payload) {
   reviewVariants: reviewVariants,
   solveVariant: solveVariant,
   closeModal: closeModal,
-  stepVariant: stepVariant
+  stepVariant: stepVariant,
+  updateVariantSelections: updateVariantSelections
 });
 
 /***/ }),

@@ -88,7 +88,7 @@ module.exports =
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 4);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -232,7 +232,8 @@ const ResolveConflict = ({
   can_solve,
   modal_open,
   closeModal,
-  stepVariant
+  stepVariant,
+  updateVariantSelections
 }) => {
   const {
     0: hasPaginator,
@@ -251,7 +252,7 @@ const ResolveConflict = ({
     tax_calculated: calculated_duty = 0,
     calculated_duty_original = 0,
     price_selected = null
-  } = variant_in_modal; // Cada que variant_in_mocal cambie verificamos el estado del paginador
+  } = variant_in_modal; // Cada que variant_in_modal cambie verificamos el estado del paginador
 
   Object(react__WEBPACK_IMPORTED_MODULE_0__["useEffect"])(() => {
     const v = variants_with_conflict;
@@ -270,12 +271,12 @@ const ResolveConflict = ({
 
   if (variants_with_conflict.length > 0) {
     pagination = __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Pagination"], {
-      hasPrevious: true,
+      hasPrevious: hasPaginator.hasPrevious,
       onPrevious: () => {
         console.log('Previous');
         move(-1);
       },
-      hastNext: true,
+      hasNext: hasPaginator.hasNext,
       onNext: () => {
         console.log('Next');
         move(1);
@@ -283,7 +284,9 @@ const ResolveConflict = ({
     });
   }
 
-  const handleSubmit = () => {};
+  const handleSubmit = () => {
+    updateVariantSelections();
+  };
 
   const handleClose = () => {
     closeModal();
@@ -299,9 +302,10 @@ const ResolveConflict = ({
   const move = (step, price_selected) => {
     if (price_selected === undefined) price_selected = hasPaginator.price_selected;
     const v = variants_with_conflict;
-    const i = v.findIndex(e => e.id === id) + step;
+    let i = v.findIndex(e => e.id === id) + step;
 
     if (i >= 0 && i < v.length) {
+      //paso valido
       stepVariant(price_selected, i);
     }
   };
@@ -314,18 +318,18 @@ const ResolveConflict = ({
     disabled: !can_solve
   }, "Guarda mi selecci\xF3n")));
 
-  const currentVariant = variants_with_conflict.findIndex(e => e.id === i) + 1;
+  const currentVariant = variants_with_conflict.findIndex(e => e.id === id) + 1;
   return __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Modal"], {
     large: true,
     open: modal_open,
     onClose: handleClose,
-    title: `Resolver conflicto ${currentVariant} de ${variants_with_conflict.length}`,
+    title: `Conflicto ${currentVariant} de ${variants_with_conflict.length}`,
     footer: footer
-  }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Modal"].Section, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["TextContainer"], null, __jsx("div", null, "Nuestros expertos sugieren diferentes impuestos de los que usted ha indicado. Seleccione cual es el correcto"), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"], {
+  }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Modal"].Section, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["TextContainer"], null, __jsx("div", null, "Nuestros expertos sugieren diferentes impuestos que los que usted ha indicado. Seleccione cual es el correcto."), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"], {
     distribution: "fillEvenly"
   }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"].Item, null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"], null, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Thumbnail"], {
     source: image_url
-  }), __jsx("div", null, title))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"].Item, null, __jsx("div", null, "Regular price: $", price), __jsx("div", null, "Impuestos: selecciona a continuaci\xF3n"))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"], {
+  }), __jsx("div", null, title))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"].Item, null, __jsx("div", null, "Precio Regular: $", price), __jsx("div", null, "Impuestos: seleccione a continuaci\xF3n"))), __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Stack"], {
     distribution: "fillEvenly"
   }, __jsx(_shopify_polaris__WEBPACK_IMPORTED_MODULE_1__["Card"], {
     sectioned: true
@@ -392,7 +396,8 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
   closeModal: () => dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].closeModal()),
-  stepVariant: (selected, next_index) => dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].stepVariant(selected, next_index))
+  stepVariant: (selected, next_index) => dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].stepVariant(selected, next_index)),
+  updateVariantSelections: () => dispatch(_store_variant__WEBPACK_IMPORTED_MODULE_2__["variantOperations"].updateVariantSelections())
 });
 
 /* harmony default export */ __webpack_exports__["default"] = (Object(react_redux__WEBPACK_IMPORTED_MODULE_0__["connect"])(mapStateToProps, mapDispatchToProps)(_components_ResolveConflict__WEBPACK_IMPORTED_MODULE_1__["default"]));
@@ -898,6 +903,48 @@ const reviewVariants = payload => {
       console.log('reviewVariants error', error);
     });
   };
+};
+
+const updateVariantSelections = () => {
+  return (dispatch, getState) => {
+    const {
+      variants_with_conflict
+    } = getState().variant;
+    const {
+      shop
+    } = getState().shopify;
+    const shopify_variants = variants_with_conflict.map(e => {
+      return {
+        id: e.variant_id,
+        price: e.price_selected === 'recommended' ? e.variant_recommended_price : e.variant_price
+      };
+    });
+    const instance = axios__WEBPACK_IMPORTED_MODULE_0___default.a.create({
+      baseURL: '/api',
+      timeout: 5000
+    });
+    return instance.put('/shopify', {
+      shopify_variants
+    }).then(response => {
+      console.debug('updateVariantSelections success', response);
+      const backendVariants = variants_with_conflict.map(e => {
+        return {
+          _id: e._id,
+          price_selected: e.price_selected
+        };
+      });
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.put(`/store/${shop.id}/finish`, {
+        variants_with_conflict: backendVariants
+      }).then(response => {
+        //Guardando nuevos status en redux
+        dispatch(_shopExists(response.data.store));
+        dispatch(setVariants(response.data.store.variants));
+        dispatch(closeModal());
+      }, error => {});
+    }, error => {
+      console.debug('updateVariantSelections error', error);
+    });
+  };
 }; // C ===================
 //exportar las funciones que finalmente se van a comunicar
 //con los componentes reales es decir tienen comunicacion
@@ -908,7 +955,8 @@ const reviewVariants = payload => {
   reviewVariants,
   solveVariant,
   closeModal,
-  stepVariant
+  stepVariant,
+  updateVariantSelections
 });
 
 /***/ }),
@@ -1036,7 +1084,7 @@ const STEP_VARIANT = 'STEP_VARIANT';
 
 /***/ }),
 
-/***/ 4:
+/***/ 5:
 /*!*********************************!*\
   !*** multi ./pages/products.js ***!
   \*********************************/

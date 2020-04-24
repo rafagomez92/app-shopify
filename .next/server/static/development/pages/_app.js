@@ -1010,6 +1010,48 @@ const reviewVariants = payload => {
       console.log('reviewVariants error', error);
     });
   };
+};
+
+const updateVariantSelections = () => {
+  return (dispatch, getState) => {
+    const {
+      variants_with_conflict
+    } = getState().variant;
+    const {
+      shop
+    } = getState().shopify;
+    const shopify_variants = variants_with_conflict.map(e => {
+      return {
+        id: e.variant_id,
+        price: e.price_selected === 'recommended' ? e.variant_recommended_price : e.variant_price
+      };
+    });
+    const instance = axios__WEBPACK_IMPORTED_MODULE_0___default.a.create({
+      baseURL: '/api',
+      timeout: 5000
+    });
+    return instance.put('/shopify', {
+      shopify_variants
+    }).then(response => {
+      console.debug('updateVariantSelections success', response);
+      const backendVariants = variants_with_conflict.map(e => {
+        return {
+          _id: e._id,
+          price_selected: e.price_selected
+        };
+      });
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.put(`/store/${shop.id}/finish`, {
+        variants_with_conflict: backendVariants
+      }).then(response => {
+        //Guardando nuevos status en redux
+        dispatch(_shopExists(response.data.store));
+        dispatch(setVariants(response.data.store.variants));
+        dispatch(closeModal());
+      }, error => {});
+    }, error => {
+      console.debug('updateVariantSelections error', error);
+    });
+  };
 }; // C ===================
 //exportar las funciones que finalmente se van a comunicar
 //con los componentes reales es decir tienen comunicacion
@@ -1020,7 +1062,8 @@ const reviewVariants = payload => {
   reviewVariants,
   solveVariant,
   closeModal,
-  stepVariant
+  stepVariant,
+  updateVariantSelections
 });
 
 /***/ }),

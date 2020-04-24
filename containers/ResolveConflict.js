@@ -13,6 +13,7 @@ const mapStateToProps = state=>({
 const mapDispatchToProps = dispatch => ({
     closeModal: () => dispatch(variantOperations.closeModal()),
     stepVariant: (selected, next_index) => dispatch(variantOperations.stepVariant(selected, next_index)),
+    updateVariantSelections: ()=>dispatch(variantOperations.updateVariantSelections()),
 })
 
 export default connect(

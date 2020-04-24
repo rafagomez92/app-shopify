@@ -67166,6 +67166,44 @@ var reviewVariants = function reviewVariants(payload) {
       console.log('reviewVariants error', error);
     });
   };
+};
+
+var updateVariantSelections = function updateVariantSelections() {
+  return function (dispatch, getState) {
+    var variants_with_conflict = getState().variant.variants_with_conflict;
+    var shop = getState().shopify.shop;
+    var shopify_variants = variants_with_conflict.map(function (e) {
+      return {
+        id: e.variant_id,
+        price: e.price_selected === 'recommended' ? e.variant_recommended_price : e.variant_price
+      };
+    });
+    var instance = axios__WEBPACK_IMPORTED_MODULE_0___default.a.create({
+      baseURL: '/api',
+      timeout: 5000
+    });
+    return instance.put('/shopify', {
+      shopify_variants: shopify_variants
+    }).then(function (response) {
+      console.debug('updateVariantSelections success', response);
+      var backendVariants = variants_with_conflict.map(function (e) {
+        return {
+          _id: e._id,
+          price_selected: e.price_selected
+        };
+      });
+      axios__WEBPACK_IMPORTED_MODULE_0___default.a.put("/store/".concat(shop.id, "/finish"), {
+        variants_with_conflict: backendVariants
+      }).then(function (response) {
+        //Guardando nuevos status en redux
+        dispatch(_shopExists(response.data.store));
+        dispatch(setVariants(response.data.store.variants));
+        dispatch(closeModal());
+      }, function (error) {});
+    }, function (error) {
+      console.debug('updateVariantSelections error', error);
+    });
+  };
 }; // C ===================
 //exportar las funciones que finalmente se van a comunicar
 //con los componentes reales es decir tienen comunicacion
@@ -67176,7 +67214,8 @@ var reviewVariants = function reviewVariants(payload) {
   reviewVariants: reviewVariants,
   solveVariant: solveVariant,
   closeModal: closeModal,
-  stepVariant: stepVariant
+  stepVariant: stepVariant,
+  updateVariantSelections: updateVariantSelections
 });
 
 /***/ }),
@@ -67310,7 +67349,7 @@ var STEP_VARIANT = 'STEP_VARIANT';
 
 /***/ }),
 
-/***/ 5:
+/***/ 3:
 /*!********************************************************************************************************************************************************!*\
   !*** multi next-client-pages-loader?page=%2F&absolutePagePath=C%3A%5CUsers%5Crafae%5CDesktop%5CBootcamp%5CFront-Back%5Capp_shopify%5Cpages%5Cindex.js ***!
   \********************************************************************************************************************************************************/
@@ -67333,5 +67372,5 @@ module.exports = dll_2adc2403d89adc16ead0;
 
 /***/ })
 
-},[[5,"static/runtime/webpack.js"]]]);
+},[[3,"static/runtime/webpack.js"]]]);
 //# sourceMappingURL=index.js.map
